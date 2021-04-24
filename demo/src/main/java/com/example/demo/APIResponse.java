@@ -23,7 +23,10 @@ public enum APIResponse {
 	USER_LOGIN_SUCCESSFUL(200, "User Login successful"), 
 	PASSWORD_MISMATCH(116, "Password is incorrect. Please try again"),
 	PASSWORD_UPDATE_FAILED(117,"Password update failed. Please contact support"), 
-	PASSWORD_RESET_SUCCESSFULLY(200, "Password reset successfully");
+	PASSWORD_RESET_SUCCESSFULLY(200, "Password reset successfully"),
+	
+	//PRODUCT MODULE
+	USER_PRODUCTS_FETCHED_SUCCESSFULLY(200, "User Products fetched successfully");
 	
 	int code;
 	String message;

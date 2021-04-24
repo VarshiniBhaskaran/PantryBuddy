@@ -28,8 +28,9 @@ public class UserUtil {
 		String hashedPassword = CommonUtils.generateHashForString(password, salt);
 
 		String query = String.format(DBUtil.CREATE_USER, name, emailId, phoneNumber, hashedPassword, currentTime);
-		Integer userId = DBUtil.insertOrUpdate(query);
-		if (userId != null) {
+		Long userId = DBUtil.insertOrUpdate(query);
+		EmailServiceImpl.sendWelcomeEmail(emailId);
+		if (userId != null || userId != 0) {
 			updatePassword(userId, salt, currentTime);
 			return CommonUtils.generateResponse(APIResponse.USER_CREATED_SUCCESSFULLY).toString();
 		} else {
@@ -37,7 +38,7 @@ public class UserUtil {
 		}
 	}
 
-	private void updatePassword(Integer userId, byte[] salt, String currentTime) throws Exception {
+	private void updatePassword(Long userId, byte[] salt, String currentTime) throws Exception {
 		PreparedStatement pstmt = DBUtil.con.prepareStatement(DBUtil.INSERT_USER_SALT);
 		pstmt.setLong(1, userId);
 		pstmt.setBytes(2, salt);
