@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api")
 public class ProductUtil {
-	public static final String UPC_API_KEY = "5A7E28020FB2A4F78A8DE783FF2B3444";
-	public static final String UPC_URL = "https://api.upcdatabase.org/product/%s?apikey=5A7E28020FB2A4F78A8DE783FF2B3444";
+	//public static final String UPC_API_KEY = "5A7E28020FB2A4F78A8DE783FF2B3444";
+	public static final String API_URL = "https://go.littlebunch.com/v1/food/%s";
 
 	@GetMapping("/product")
 	public String fetchUserProducts(String emailId) throws Exception {
@@ -32,8 +32,18 @@ public class ProductUtil {
 			object.put("product_name", rs.getString("PRODUCT_NAME"));
 			object.put("manufacturer", rs.getString("MANUFACTURER"));
 			object.put("expiry_date", rs.getDate("EXPIRY_DATE"));
+			object.put("category", rs.getString("CATEGORY"));
+			object.put("serving_size", rs.getString("SERVING_SIZE"));
+			object.put("ingredients", rs.getString("INGREDIENTS"));
 			object.put("count", rs.getInt("COUNT"));
-			// TODO: check in which color the product should be displayed.
+			String image = rs.getString("IMAGE");
+			System.out.println("image is" +image);
+			if(image == null) {
+				object.put("image",  "default_img");
+			}else{
+				object.put("image", rs.getString("IMAGE"));
+			}
+			System.out.println("object is " + object.getString("image"));
 			arr.put(object);
 		}
 		response.put("product_details", arr);
@@ -41,7 +51,7 @@ public class ProductUtil {
 	}
 
 	@PostMapping("/product")
-	public String updateUserProducts(String emailId, long productId, String expiryDate) throws Exception {
+	public String updateUserProducts(String emailId, String productId, String expiryDate) throws Exception {
 		if (emailId.trim().isEmpty()) {
 			return CommonUtils.generateResponse(APIResponse.EMAIL_ID_EMPTY).toString();
 		}
@@ -51,20 +61,29 @@ public class ProductUtil {
 		}
 		Long userId = rs.getLong("ID");
 		JSONObject response = fetchProductDetails(productId);
-
-		rs = DBUtil.executeQuery(String.format(DBUtil.SELECT_PRODUCT, response.getString("description"), response.getString("manufacturer")));
+		System.out.println("product id is " + productId);
+		System.out.println("====================================");
+		System.out.println("the json response is " + response);
+		System.out.println("====================================");
+		JSONObject food_details = response.getJSONArray("items").getJSONObject(0);
+		String description = food_details.getString("foodDescription");
+		String company = food_details.getString("company");
+		String ingredients = food_details.getString("ingredients");
+		String servingSize = food_details.getJSONArray("servingSizes").getJSONObject(0).getString("servingUnit");
+		String category = food_details.getJSONObject("foodGroup").getString("description");
+		rs = DBUtil.executeQuery(String.format(DBUtil.SELECT_PRODUCT,description , company));
 		Long product = 0L;
 		if(rs.next()) {
 			product = rs.getLong("ID");
 		}
 		int count = 0;
 		if (product != 0) {
-			rs = DBUtil.executeQuery(String.format(DBUtil.SELECT_USER_PRODUCT, product, userId));
+			rs = DBUtil.executeQuery(String.format(DBUtil.SELECT_USER_PRODUCT, product, userId, java.sql.Date.valueOf(expiryDate)));
 			while (rs.next()) {
 				count = rs.getInt("COUNT");
 			}
 		} else {
-			product = DBUtil.insertOrUpdate(String.format(DBUtil.INSERT_PRODUCT, response.getString("description"), response.getString("manufacturer")));
+			product = DBUtil.insertOrUpdate(String.format(DBUtil.INSERT_PRODUCT, description, company, category, ingredients, servingSize ));
 		}
 		count++;
 		if(count == 1) {
@@ -77,8 +96,11 @@ public class ProductUtil {
 		return obj.toString();
 	}
 
-	private JSONObject fetchProductDetails(long productId) throws Exception {
-		String url = String.format(UPC_URL, productId);
+	private JSONObject fetchProductDetails(String productId) throws Exception {
+		String url = String.format(API_URL, productId);
+		System.out.println("==============================");
+		System.out.println("the incoming url is " + url);
+		System.out.println("==========================");
 		String response = CommonUtils.httpGetCall(url);
 		return new JSONObject(response);
 	}
