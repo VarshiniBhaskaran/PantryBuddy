@@ -2,11 +2,13 @@ package com.example.demo;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +31,7 @@ public class UserUtil {
 
 		String query = String.format(DBUtil.CREATE_USER, name, emailId, phoneNumber, hashedPassword, currentTime);
 		Long userId = DBUtil.insertOrUpdate(query);
-		EmailServiceImpl.sendWelcomeEmail(emailId);
+		//EmailServiceImpl.sendWelcomeEmail(emailId);
 		if (userId != null || userId != 0) {
 			updatePassword(userId, salt, currentTime);
 			return CommonUtils.generateResponse(APIResponse.USER_CREATED_SUCCESSFULLY).toString();
@@ -187,5 +189,24 @@ public class UserUtil {
 	public String deleteUser(@RequestParam(required = true) String emailId) {
 		return "delete User";
 	}
+	
+	@PostMapping("/user/allergy")
+	public String addUserAllergy(@RequestParam(required = true)String emailId, String commaSeparatedAllergy) throws Exception {
+		if (emailId == null || emailId.trim().isEmpty()) {
+			return CommonUtils.generateResponse(APIResponse.EMAIL_ID_EMPTY).toString();
+		}
+		ResultSet rs = DBUtil.executeQuery(String.format(DBUtil.GET_USER_OTP, emailId));
+		if (rs.next() == false) {
+			return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
+		}
+		String query = String.format(DBUtil.UPDATE_USER_ALLERGY, commaSeparatedAllergy, emailId);
+		int rowsAffected = DBUtil.update(query);
+		if(rowsAffected == 0) {
+			return CommonUtils.generateResponse(APIResponse.USER_ALLERGY_UPDATED_FAILED).toString();
+		}
+		return CommonUtils.generateResponse(APIResponse.USER_ALLERGY_UPDATED_SUCCESSFULLY).toString();
+	
+	}
+
 
 }
