@@ -24,6 +24,8 @@ public enum APIResponse {
 	PASSWORD_MISMATCH(116, "Password is incorrect. Please try again"),
 	PASSWORD_UPDATE_FAILED(117,"Password update failed. Please contact support"), 
 	PASSWORD_RESET_SUCCESSFULLY(200, "Password reset successfully"),
+	USER_ALLERGY_UPDATED_FAILED(118, "Issue occurred while updating user allergy details. Please contact support"),
+	USER_ALLERGY_UPDATED_SUCCESSFULLY(200, "User allergy details updated successfully"),
 	
 	//PRODUCT MODULE
 	USER_PRODUCTS_FETCHED_SUCCESSFULLY(200, "User Products fetched successfully");
