@@ -12,6 +12,7 @@ public class DBUtil {
 	//USER MODULE QUERIES
 	public static final String CREATE_USER = "insert into user(NAME,EMAIL_ID,PHONE_NUMBER,PASSWORD,CREATED_TIME) values('%s','%s','%s','%s','%s')";
 	public static final String GET_USER_OTP = "select user.ID, user.PHONE_NUMBER, user_to_otp.OTP, user_to_otp.CREATED_TIME from user left join user_to_otp on user.ID = user_to_otp.USER_ID where EMAIL_ID='%s'";
+	public static final String GET_USER_OTP_FOR_PHONE = "select user.ID, user.PHONE_NUMBER, user_to_otp.OTP, user_to_otp.CREATED_TIME from user left join user_to_otp on user.ID = user_to_otp.USER_ID where PHONE_NUMBER='%s'";
 	public static final String UPDATE_USER_OTP = "update user_to_otp set OTP=%s,CREATED_TIME='%s' where USER_ID=%s";
 	public static final String CREATE_USER_OTP = "insert into user_to_otp(USER_ID,OTP, CREATED_TIME) values(%s,%s,'%s')";
 	public static final String FETCH_USER_PASSWORD = "select PASSWORD,SALT from user inner join user_to_salt on user.ID = user_to_salt.USER_ID where user.EMAIL_ID = '%s'";
