@@ -13,7 +13,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 public class EmailServiceImpl {
-	
+
 	static Session setPropertiesAndFetchSession() throws Exception {
 		Properties props = getEmailProperties();
 		Session session = Session.getInstance(props, new javax.mail.Authenticator() {
@@ -23,33 +23,38 @@ public class EmailServiceImpl {
 		});
 		return session;
 	}
-	
-	static void sendWelcomeEmail(String emailId) throws Exception{
-		Session session = setPropertiesAndFetchSession();
-		Message msg = new MimeMessage(session);
-		msg.setFrom(new InternetAddress("noreply-pantrybuddy", false));
-		msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailId, false));
-		msg.setSubject("Welcome to Pantry Buddy");
 
-		// message body.
-		Multipart mp = new MimeMultipart("related");
+	static void sendWelcomeEmail(String emailId) throws Exception {
+		try {
+			Session session = setPropertiesAndFetchSession();
+			Message msg = new MimeMessage(session);
+			msg.setFrom(new InternetAddress("noreply-pantrybuddy", false));
+			msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailId, false));
+			msg.setSubject("Welcome to Pantry Buddy");
 
-		String cid = "Welcome";
+			// message body.
+			Multipart mp = new MimeMultipart("related");
 
-		MimeBodyPart pixPart = new MimeBodyPart();
-		pixPart.attachFile("PantryBuddy.png");
-		pixPart.setContentID("<" + cid + ">");
-		pixPart.setDisposition(MimeBodyPart.INLINE);
+			String cid = "Welcome";
 
-		MimeBodyPart textPart = new MimeBodyPart();
-		textPart.setText("<html>" + "<div><img src=cid:Welcome style=width:100%; height:auto; border:none;\"/></div></html>", "US-ASCII", "html");
+			MimeBodyPart pixPart = new MimeBodyPart();
+			pixPart.attachFile("PantryBuddy.png");
+			pixPart.setContentID("<" + cid + ">");
+			pixPart.setDisposition(MimeBodyPart.INLINE);
 
-		// Attach text and image to message body
-		mp.addBodyPart(textPart);
-		mp.addBodyPart(pixPart);
-		msg.setContent(mp);
+			MimeBodyPart textPart = new MimeBodyPart();
+			textPart.setText("<html>" + "<div><img src=cid:Welcome style=width:100%; height:auto; border:none;\"/></div></html>", "US-ASCII", "html");
 
-		Transport.send(msg);
+			// Attach text and image to message body
+			mp.addBodyPart(textPart);
+			mp.addBodyPart(pixPart);
+			msg.setContent(mp);
+
+			Transport.send(msg);
+		} catch (Exception e) {
+			System.out.println("Unable to send email to the user!");
+			e.printStackTrace();
+		}
 	}
 
 	private static Properties getEmailProperties() {
