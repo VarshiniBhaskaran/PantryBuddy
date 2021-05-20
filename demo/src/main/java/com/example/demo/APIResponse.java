@@ -14,6 +14,7 @@ public enum APIResponse {
 	PASSWORD_NOT_COMPLIANT(106, "Password does not comply with the rules. Please ensure to have upper case, lowercase letters and numbers in your password"), 
 	EMAIL_ID_ALREADY_REGISTERED(107,"This email Id is already registered. Please use the 'Forget Password' option if you forgot your password or register with a different Id"), 
 	USER_CREATION_FAILED(108, "Something went wrong while creating user. Please contact support"), 
+	PHONE_ALREADY_REGISTERED(109,"This phone number is already registered. Please use the 'Forget Password' option if you forgot your password or register with a different number"), 
 	USER_OTP_GENERATED_SUCCESSFULLY(200, "OTP Generated successfully"), 
 	USER_NOT_FOUND(110,"User Not Found. Please check emailId"), 
 	OTP_EXPIRED(111, "Your OTP has expired. Please regenerate it to continue"), 
@@ -28,7 +29,8 @@ public enum APIResponse {
 	USER_ALLERGY_UPDATED_SUCCESSFULLY(200, "User allergy details updated successfully"),
 	
 	//PRODUCT MODULE
-	USER_PRODUCTS_FETCHED_SUCCESSFULLY(200, "User Products fetched successfully");
+	USER_PRODUCTS_FETCHED_SUCCESSFULLY(200, "User Products fetched successfully"),
+	USER_PRODUCTS_UPDATED_SUCCESSFULLY(200, "User Updated fetched successfully");
 	
 	int code;
 	String message;
