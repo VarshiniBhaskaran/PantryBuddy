@@ -31,8 +31,9 @@ public class UserUtil {
 
 		String query = String.format(DBUtil.CREATE_USER, name, emailId, phoneNumber, hashedPassword, currentTime);
 		Long userId = DBUtil.insertOrUpdate(query);
-		//EmailServiceImpl.sendWelcomeEmail(emailId);
-		if (userId != null || userId != 0) {
+
+		EmailServiceImpl.sendWelcomeEmail(emailId);
+		if (userId != null && userId != 0) {
 			updatePassword(userId, salt, currentTime);
 			return CommonUtils.generateResponse(APIResponse.USER_CREATED_SUCCESSFULLY).toString();
 		} else {
@@ -69,6 +70,9 @@ public class UserUtil {
 		}
 		if (CommonUtils.checkIfEmailExists(emailId)) {
 			return CommonUtils.generateResponse(APIResponse.EMAIL_ID_ALREADY_REGISTERED).toString();
+		}
+		if (CommonUtils.checkIfPhoneNumberExists(phoneNumber)) {
+			return CommonUtils.generateResponse(APIResponse.PHONE_ALREADY_REGISTERED).toString();
 		}
 		return null;
 	}
@@ -189,9 +193,9 @@ public class UserUtil {
 	public String deleteUser(@RequestParam(required = true) String emailId) {
 		return "delete User";
 	}
-	
+
 	@PostMapping("/user/allergy")
-	public String addUserAllergy(@RequestParam(required = true)String emailId, String commaSeparatedAllergy) throws Exception {
+	public String addUserAllergy(@RequestParam(required = true) String emailId, String commaSeparatedAllergy) throws Exception {
 		if (emailId == null || emailId.trim().isEmpty()) {
 			return CommonUtils.generateResponse(APIResponse.EMAIL_ID_EMPTY).toString();
 		}
@@ -201,12 +205,11 @@ public class UserUtil {
 		}
 		String query = String.format(DBUtil.UPDATE_USER_ALLERGY, commaSeparatedAllergy, emailId);
 		int rowsAffected = DBUtil.update(query);
-		if(rowsAffected == 0) {
+		if (rowsAffected == 0) {
 			return CommonUtils.generateResponse(APIResponse.USER_ALLERGY_UPDATED_FAILED).toString();
 		}
 		return CommonUtils.generateResponse(APIResponse.USER_ALLERGY_UPDATED_SUCCESSFULLY).toString();
-	
-	}
 
+	}
 
 }
