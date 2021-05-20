@@ -29,6 +29,18 @@ public class CommonUtils {
 		}
 		return false;
 	}
+	
+	public static boolean checkIfPhoneNumberExists(String number) throws Exception {
+		String query = String.format(DBUtil.GET_USER_OTP_FOR_PHONE, number);
+		ResultSet rs = DBUtil.executeQuery(query);
+		while(rs.next()) {
+			Long userId = rs.getLong("ID");
+			if(userId!=null || userId!=0) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	public static boolean checkIfPasswordIsValid(String password) {
 		Pattern passwordRegex = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$");
