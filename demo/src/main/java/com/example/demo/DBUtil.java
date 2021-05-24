@@ -11,6 +11,7 @@ public class DBUtil {
 	
 	//USER MODULE QUERIES
 	public static final String CREATE_USER = "insert into user(NAME,EMAIL_ID,PHONE_NUMBER,PASSWORD,CREATED_TIME) values('%s','%s','%s','%s','%s')";
+	public static final String UPDATE_USER = "update user set NAME='%s', PHONE_NUMBER='%s', PASSWORD='%s', CREATED_TIME='%s' where EMAIL_ID='%s'";
 	public static final String GET_USER_OTP = "select user.ID, user.PHONE_NUMBER, user_to_otp.OTP, user_to_otp.CREATED_TIME from user left join user_to_otp on user.ID = user_to_otp.USER_ID where EMAIL_ID='%s'";
 	public static final String GET_USER_OTP_FOR_PHONE = "select user.ID, user.PHONE_NUMBER, user_to_otp.OTP, user_to_otp.CREATED_TIME from user left join user_to_otp on user.ID = user_to_otp.USER_ID where PHONE_NUMBER='%s'";
 	public static final String UPDATE_USER_OTP = "update user_to_otp set OTP=%s,CREATED_TIME='%s' where USER_ID=%s";
@@ -21,9 +22,10 @@ public class DBUtil {
 	public static final String UPDATE_USER_SALT = "update user_to_salt inner join user on user_to_salt.USER_ID = user.ID set SALT=?, user_to_salt.CREATED_TIME=? where user.EMAIL_ID=?";
 	public static final String GET_USER_ID_FOR_EMAIL = "select ID from user where EMAIL_ID ='%s'";
 	public static final String UPDATE_USER_ALLERGY= "update user set ALLERGY='%s' where EMAIL_ID='%s'";
-			
+	public static final String FETCH_USER = "select * from user where EMAIL_ID='%s'";
+	
 	//PRODUCT MODULE QUERIES
-	public static final String FETCH_USER_PRODUCTS = "select PRODUCT_NAME, MANUFACTURER, EXPIRY_DATE, COUNT, product.CATEGORY, INGREDIENTS, SERVING_SIZE,IMAGE from user_products inner join product on user_products.PRODUCT_ID = product.ID inner join user on user_products.USER_ID = user.id left join product_category_to_image on product.CATEGORY = product_category_to_image.CATEGORY where user.EMAIL_ID ='%s' order by EXPIRY_DATE";
+	public static final String FETCH_USER_PRODUCTS = "select PRODUCT_NAME, MANUFACTURER, EXPIRY_DATE, COUNT, product.CATEGORY, INGREDIENTS, SERVING_SIZE,IMAGE, ALLERGY from user_products inner join product on user_products.PRODUCT_ID = product.ID inner join user on user_products.USER_ID = user.id left join product_category_to_image on product.CATEGORY = product_category_to_image.CATEGORY where user.EMAIL_ID ='%s' order by EXPIRY_DATE";
 	public static final String SELECT_PRODUCT = "select ID from product where PRODUCT_NAME='%s' and MANUFACTURER='%s'";
 	public static final String SELECT_USER_PRODUCT = "select COUNT from user_products where PRODUCT_ID=%s and USER_ID=%s and EXPIRY_DATE='%s'";
 	public static final String INSERT_PRODUCT ="insert into product(PRODUCT_NAME, MANUFACTURER, CATEGORY, INGREDIENTS,SERVING_SIZE) values('%s','%s','%s','%s','%s')";
