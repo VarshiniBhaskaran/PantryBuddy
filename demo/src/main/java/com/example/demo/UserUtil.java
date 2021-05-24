@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserUtil {
 	@PostMapping("/user/create")
 	public String createUser(String firstName, String lastName, String emailId, String phoneNumber, String password) throws Exception {
-		String precheckResponse = performPrechecks(firstName, lastName, emailId, phoneNumber, password);
+		String precheckResponse = performPrechecks(firstName, lastName, emailId, phoneNumber, password, true);
 		if (precheckResponse != null) {
 			return precheckResponse;
 		}
@@ -40,6 +40,29 @@ public class UserUtil {
 			return CommonUtils.generateResponse(APIResponse.USER_CREATION_FAILED).toString();
 		}
 	}
+	
+	@PostMapping("/user/edit")
+	public String editUser(String firstName, String lastName, String emailId, String phoneNumber, String password) throws Exception {
+		String precheckResponse = performPrechecks(firstName, lastName, emailId, phoneNumber, password, false);
+		if (precheckResponse != null) {
+			return precheckResponse;
+		}
+		String currentTime = CommonUtils.getCurrentTime();
+		String name = firstName + "###" + lastName;
+
+		byte[] salt = CommonUtils.generateSalt();
+
+		String hashedPassword = CommonUtils.generateHashForString(password, salt);
+
+		String query = String.format(DBUtil.UPDATE_USER, name, phoneNumber, hashedPassword, currentTime, emailId);
+		Long userId = DBUtil.insertOrUpdate(query);
+		if (userId != null && userId != 0) {
+			updatePassword(userId, salt, currentTime);
+			return CommonUtils.generateResponse(APIResponse.USER_UPDATED_SUCCESSFULLY).toString();
+		} else {
+			return CommonUtils.generateResponse(APIResponse.USER_UPDATION_FAILED).toString();
+		}
+	}
 
 	private void updatePassword(Long userId, byte[] salt, String currentTime) throws Exception {
 		PreparedStatement pstmt = DBUtil.con.prepareStatement(DBUtil.INSERT_USER_SALT);
@@ -49,7 +72,7 @@ public class UserUtil {
 		pstmt.execute();
 	}
 
-	private String performPrechecks(String firstName, String lastName, String emailId, String phoneNumber, String password) throws Exception {
+	private String performPrechecks(String firstName, String lastName, String emailId, String phoneNumber, String password, boolean isSignup) throws Exception {
 		if (firstName == null || firstName.trim().isEmpty()) {
 			return CommonUtils.generateResponse(APIResponse.FIRST_NAME_EMPTY).toString();
 		}
@@ -68,11 +91,13 @@ public class UserUtil {
 		if (!CommonUtils.checkIfPasswordIsValid(password)) {
 			return CommonUtils.generateResponse(APIResponse.PASSWORD_NOT_COMPLIANT).toString();
 		}
-		if (CommonUtils.checkIfEmailExists(emailId)) {
-			return CommonUtils.generateResponse(APIResponse.EMAIL_ID_ALREADY_REGISTERED).toString();
-		}
-		if (CommonUtils.checkIfPhoneNumberExists(phoneNumber)) {
-			return CommonUtils.generateResponse(APIResponse.PHONE_ALREADY_REGISTERED).toString();
+		if (isSignup) {
+			if (CommonUtils.checkIfEmailExists(emailId)) {
+				return CommonUtils.generateResponse(APIResponse.EMAIL_ID_ALREADY_REGISTERED).toString();
+			}
+			if (CommonUtils.checkIfPhoneNumberExists(phoneNumber)) {
+				return CommonUtils.generateResponse(APIResponse.PHONE_ALREADY_REGISTERED).toString();
+			}
 		}
 		return null;
 	}
@@ -192,6 +217,30 @@ public class UserUtil {
 	@PostMapping("/user/delete")
 	public String deleteUser(@RequestParam(required = true) String emailId) {
 		return "delete User";
+	}
+	
+	@GetMapping("/user/fetch")
+	public String fetchUser(@RequestParam(required = true) String emailId) throws Exception {
+		if (emailId == null || emailId.trim().isEmpty()) {
+			return CommonUtils.generateResponse(APIResponse.EMAIL_ID_EMPTY).toString();
+		}
+		String query = String.format(DBUtil.FETCH_USER, emailId);
+		JSONObject response = null;
+		try (ResultSet rs = DBUtil.executeQuery(query)) {
+			if (rs.next()) {
+				response = CommonUtils.generateResponse(APIResponse.USER_FETCHED_SUCCESSFULLY);
+				String[] name = rs.getString("NAME").split("###");
+				response.put("first_name", name[0]);
+				response.put("last_name", name[1]);
+				response.put("emailId", rs.getString("EMAIL_ID"));
+				response.put("phoneNumber", rs.getString("PHONE_NUMBER"));
+				response.put("allergy", rs.getString("ALLERGY"));
+				response.put("isActive", rs.getString("ACTIVE"));
+			}else {
+				response = CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND);
+			}
+		}
+		return response.toString();
 	}
 
 	@PostMapping("/user/allergy")
