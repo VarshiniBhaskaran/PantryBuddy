@@ -3,6 +3,7 @@ package com.example.demo;
 public enum APIResponse {
 	
 	USER_CREATED_SUCCESSFULLY(201,"User created successfully."),
+	USER_UPDATED_SUCCESSFULLY(201,"User created successfully."),
 	
 	//User Module Response Codes
 	FIRST_NAME_EMPTY(100,"First Name cannot be empty"),
@@ -27,6 +28,8 @@ public enum APIResponse {
 	PASSWORD_RESET_SUCCESSFULLY(200, "Password reset successfully"),
 	USER_ALLERGY_UPDATED_FAILED(118, "Issue occurred while updating user allergy details. Please contact support"),
 	USER_ALLERGY_UPDATED_SUCCESSFULLY(200, "User allergy details updated successfully"),
+	USER_FETCHED_SUCCESSFULLY(205, "User details fetched successfully"),
+	USER_UPDATION_FAILED(119, "Failed to update user."),
 	
 	//PRODUCT MODULE
 	USER_PRODUCTS_FETCHED_SUCCESSFULLY(200, "User Products fetched successfully"),
