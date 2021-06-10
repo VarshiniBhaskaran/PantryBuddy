@@ -3,7 +3,7 @@ package com.example.demo;
 public enum APIResponse {
 	
 	USER_CREATED_SUCCESSFULLY(201,"User created successfully."),
-	USER_UPDATED_SUCCESSFULLY(201,"User created successfully."),
+	USER_UPDATED_SUCCESSFULLY(201,"User details updated successfully."),
 	
 	//User Module Response Codes
 	FIRST_NAME_EMPTY(100,"First Name cannot be empty"),
@@ -33,7 +33,11 @@ public enum APIResponse {
 	
 	//PRODUCT MODULE
 	USER_PRODUCTS_FETCHED_SUCCESSFULLY(200, "User Products fetched successfully"),
-	USER_PRODUCTS_UPDATED_SUCCESSFULLY(200, "User Updated fetched successfully");
+	USER_PRODUCTS_UPDATED_SUCCESSFULLY(200, "User Updated fetched successfully"), 
+	EXPIRED_PRODUCTS_FETCHED_SUCCESSFULLY(200, "User's expired products fetched successfully"),
+	EXPIRED_PRODUCTS_FAILED(200, "Failed to fetch User's expired products"), 
+	USER_PRODUCTS_DELETED_SUCCESSFULLY(208, "User Product deleted successfully");
+
 	
 	int code;
 	String message;
