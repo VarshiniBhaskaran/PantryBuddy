@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 @CrossOrigin("*")
 public class UserUtil {
+	private static final int ACTIVE = 1;
+
 	@PostMapping("/user/create")
 	public String createUser(String firstName, String lastName, String emailId, String phoneNumber, String password) throws Exception {
 		String precheckResponse = performPrechecks(firstName, lastName, emailId, phoneNumber, password, true);
@@ -40,7 +42,7 @@ public class UserUtil {
 			return CommonUtils.generateResponse(APIResponse.USER_CREATION_FAILED).toString();
 		}
 	}
-	
+
 	@PostMapping("/user/edit")
 	public String editUser(String firstName, String lastName, String emailId, String phoneNumber, String password) throws Exception {
 		String precheckResponse = performPrechecks(firstName, lastName, emailId, phoneNumber, password, false);
@@ -55,9 +57,9 @@ public class UserUtil {
 		String hashedPassword = CommonUtils.generateHashForString(password, salt);
 
 		String query = String.format(DBUtil.UPDATE_USER, name, phoneNumber, hashedPassword, currentTime, emailId);
-		Long userId = DBUtil.insertOrUpdate(query);
-		if (userId != null && userId != 0) {
-			updatePassword(userId, salt, currentTime);
+		int updatedRows = DBUtil.update(query);
+		if (updatedRows != 0) {
+			updatePassword(salt, currentTime, emailId);
 			return CommonUtils.generateResponse(APIResponse.USER_UPDATED_SUCCESSFULLY).toString();
 		} else {
 			return CommonUtils.generateResponse(APIResponse.USER_UPDATION_FAILED).toString();
@@ -107,26 +109,27 @@ public class UserUtil {
 		Random rnd = new Random();
 		int otp = 100000 + rnd.nextInt(900000);
 		String query = String.format(DBUtil.GET_USER_OTP, emailId);
-		ResultSet rs = DBUtil.executeQuery(query);
-		java.util.Date dt = new java.util.Date();
-		java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		String currentTime = sdf.format(dt);
+		try (ResultSet rs = DBUtil.executeQuery(query)) {
+			java.util.Date dt = new java.util.Date();
+			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			String currentTime = sdf.format(dt);
 
-		if (rs.next()) {
-			Long userId = rs.getLong("ID");
-			Long otpId = rs.getLong("OTP");
-			String phoneNumber = rs.getString("PHONE_NUMBER");
-			query = null;
-			if (otpId == null || otpId != 0) {
-				query = String.format(DBUtil.UPDATE_USER_OTP, otp, currentTime, userId);
-			} else {
-				query = String.format(DBUtil.CREATE_USER_OTP, userId, otp, currentTime);
+			if (rs.next()) {
+				Long userId = rs.getLong("ID");
+				Long otpId = rs.getLong("OTP");
+				String phoneNumber = rs.getString("PHONE_NUMBER");
+				query = null;
+				if (otpId == null || otpId != 0) {
+					query = String.format(DBUtil.UPDATE_USER_OTP, otp, currentTime, userId);
+				} else {
+					query = String.format(DBUtil.CREATE_USER_OTP, userId, otp, currentTime);
+				}
+				DBUtil.insertOrUpdate(query);
+				JSONObject response = CommonUtils.generateResponse(APIResponse.USER_OTP_GENERATED_SUCCESSFULLY);
+				response.put("otp", otp);
+				response.put("phone_number", phoneNumber);
+				return response.toString();
 			}
-			DBUtil.insertOrUpdate(query);
-			JSONObject response = CommonUtils.generateResponse(APIResponse.USER_OTP_GENERATED_SUCCESSFULLY);
-			response.put("otp", otp);
-			response.put("phone_number", phoneNumber);
-			return response.toString();
 		}
 
 		return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
@@ -135,27 +138,34 @@ public class UserUtil {
 	@PostMapping("/user/otp")
 	public String verifyUser(String emailId, int otp) throws Exception {
 		String selectQuery = String.format(DBUtil.GET_USER_OTP, emailId);
-		ResultSet rs = DBUtil.executeQuery(selectQuery);
-		if (rs.next()) {
-			Long otp_local = rs.getLong("OTP");
-			String createdTime = rs.getString("CREATED_TIME");
-			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-			Date otpCreatedTime = format.parse(createdTime);
-			long millis = otpCreatedTime.getTime();
-			long elapsedMillis = System.currentTimeMillis() - millis;
+		try (ResultSet rs = DBUtil.executeQuery(selectQuery)) {
+			if (rs.next()) {
+				Long otp_local = rs.getLong("OTP");
+				String createdTime = rs.getString("CREATED_TIME");
+				SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				Date otpCreatedTime = format.parse(createdTime);
+				long millis = otpCreatedTime.getTime();
+				long elapsedMillis = System.currentTimeMillis() - millis;
 
-			if (elapsedMillis > TimeUnit.MINUTES.toMillis(10)) {
-				return CommonUtils.generateResponse(APIResponse.OTP_EXPIRED).toString();
-			}
-			if (otp_local == 0) {
-				return CommonUtils.generateResponse(APIResponse.OTP_NOT_CREATED).toString();
-			} else if (otp_local == otp) {
-				return CommonUtils.generateResponse(APIResponse.USER_VERIFIED_SUCCESSFULLY).toString();
-			} else {
-				return CommonUtils.generateResponse(APIResponse.USER_VERIFICATION_FAILED).toString();
+				if (elapsedMillis > TimeUnit.MINUTES.toMillis(10)) {
+					return CommonUtils.generateResponse(APIResponse.OTP_EXPIRED).toString();
+				}
+				if (otp_local == 0) {
+					return CommonUtils.generateResponse(APIResponse.OTP_NOT_CREATED).toString();
+				} else if (otp_local == otp) {
+					updateUserStatus(emailId, ACTIVE);
+					return CommonUtils.generateResponse(APIResponse.USER_VERIFIED_SUCCESSFULLY).toString();
+				} else {
+					return CommonUtils.generateResponse(APIResponse.USER_VERIFICATION_FAILED).toString();
+				}
 			}
 		}
 		return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
+	}
+
+	private void updateUserStatus(String emailId, int status) throws Exception {
+		String query = String.format(DBUtil.MARK_USER_STATUS, status, emailId);
+		DBUtil.update(query);
 	}
 
 	@PostMapping("/user/login")
@@ -167,15 +177,16 @@ public class UserUtil {
 			return CommonUtils.generateResponse(APIResponse.PASSWORD_EMPTY).toString();
 		}
 		String query = String.format(DBUtil.FETCH_USER_PASSWORD, emailId);
-		ResultSet rs = DBUtil.executeQuery(query);
-		if (rs.next()) {
-			String user_password = rs.getString("PASSWORD");
-			byte[] salt = rs.getBytes("SALT");
-			String hashedPassword = CommonUtils.generateHashForString(password, salt);
-			if (user_password.trim().equals(hashedPassword)) {
-				return CommonUtils.generateResponse(APIResponse.USER_LOGIN_SUCCESSFUL).toString();
-			} else {
-				return CommonUtils.generateResponse(APIResponse.PASSWORD_MISMATCH).toString();
+		try (ResultSet rs = DBUtil.executeQuery(query)) {
+			if (rs.next()) {
+				String user_password = rs.getString("PASSWORD");
+				byte[] salt = rs.getBytes("SALT");
+				String hashedPassword = CommonUtils.generateHashForString(password, salt);
+				if (user_password.trim().equals(hashedPassword)) {
+					return CommonUtils.generateResponse(APIResponse.USER_LOGIN_SUCCESSFUL).toString();
+				} else {
+					return CommonUtils.generateResponse(APIResponse.PASSWORD_MISMATCH).toString();
+				}
 			}
 		}
 		return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
@@ -189,9 +200,10 @@ public class UserUtil {
 		if (password == null || password.trim().isEmpty()) {
 			return CommonUtils.generateResponse(APIResponse.PASSWORD_EMPTY).toString();
 		}
-		ResultSet rs = DBUtil.executeQuery(String.format(DBUtil.GET_USER_OTP, emailId));
-		if (rs.next() == false) {
-			return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
+		try (ResultSet rs = DBUtil.executeQuery(String.format(DBUtil.GET_USER_OTP, emailId))) {
+			if (rs.next() == false) {
+				return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
+			}
 		}
 		byte[] salt = CommonUtils.generateSalt();
 		String hashedPassword = CommonUtils.generateHashForString(password, salt);
@@ -202,6 +214,7 @@ public class UserUtil {
 		} else {
 			String currentTime = CommonUtils.getCurrentTime();
 			updatePassword(salt, currentTime, emailId);
+			updateUserStatus(emailId, ACTIVE);
 			return CommonUtils.generateResponse(APIResponse.PASSWORD_RESET_SUCCESSFULLY).toString();
 		}
 	}
@@ -218,7 +231,7 @@ public class UserUtil {
 	public String deleteUser(@RequestParam(required = true) String emailId) {
 		return "delete User";
 	}
-	
+
 	@GetMapping("/user/fetch")
 	public String fetchUser(@RequestParam(required = true) String emailId) throws Exception {
 		if (emailId == null || emailId.trim().isEmpty()) {
@@ -236,7 +249,7 @@ public class UserUtil {
 				response.put("phoneNumber", rs.getString("PHONE_NUMBER"));
 				response.put("allergy", rs.getString("ALLERGY"));
 				response.put("isActive", rs.getString("ACTIVE"));
-			}else {
+			} else {
 				response = CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND);
 			}
 		}
@@ -248,9 +261,10 @@ public class UserUtil {
 		if (emailId == null || emailId.trim().isEmpty()) {
 			return CommonUtils.generateResponse(APIResponse.EMAIL_ID_EMPTY).toString();
 		}
-		ResultSet rs = DBUtil.executeQuery(String.format(DBUtil.GET_USER_OTP, emailId));
-		if (rs.next() == false) {
-			return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
+		try (ResultSet rs = DBUtil.executeQuery(String.format(DBUtil.GET_USER_OTP, emailId))) {
+			if (rs.next() == false) {
+				return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
+			}
 		}
 		String query = String.format(DBUtil.UPDATE_USER_ALLERGY, commaSeparatedAllergy, emailId);
 		int rowsAffected = DBUtil.update(query);
@@ -259,6 +273,28 @@ public class UserUtil {
 		}
 		return CommonUtils.generateResponse(APIResponse.USER_ALLERGY_UPDATED_SUCCESSFULLY).toString();
 
+	}
+	
+	@GetMapping("/expired/products/fetch")
+	public String fetchExpiredProducts(@RequestParam(required = true) String emailId) throws Exception {
+		if (emailId == null || emailId.trim().isEmpty()) {
+			return CommonUtils.generateResponse(APIResponse.EMAIL_ID_EMPTY).toString();
+		}
+		try (ResultSet rs = DBUtil.executeQuery(String.format(DBUtil.GET_USER_OTP, emailId))) {
+			if (rs.next() == false) {
+				return CommonUtils.generateResponse(APIResponse.USER_NOT_FOUND).toString();
+			}
+		}
+		String query = String.format(DBUtil.FETCH_EXPIRED_FOOD, emailId);
+		JSONObject resp = CommonUtils.generateResponse(APIResponse.EXPIRED_PRODUCTS_FETCHED_SUCCESSFULLY);
+		try(ResultSet rs = DBUtil.executeQuery(query)){
+			if(rs.next()) {
+				resp.put("count", rs.getString("COUNT"));
+			}
+		}catch(Exception e) {
+			return CommonUtils.generateResponse(APIResponse.EXPIRED_PRODUCTS_FAILED).toString();
+		}
+		return resp.toString();
 	}
 
 }
