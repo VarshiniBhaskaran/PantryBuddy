@@ -8,7 +8,6 @@ import java.sql.Statement;
 public class DBUtil {
 	public static Statement stmt;
 	public static Connection con;
-	
 	//USER MODULE QUERIES
 	public static final String CREATE_USER = "insert into user(NAME,EMAIL_ID,PHONE_NUMBER,PASSWORD,CREATED_TIME) values('%s','%s','%s','%s','%s')";
 	public static final String UPDATE_USER = "update user set NAME='%s', PHONE_NUMBER='%s', PASSWORD='%s', CREATED_TIME='%s' where EMAIL_ID='%s'";
@@ -30,8 +29,13 @@ public class DBUtil {
 	public static final String SELECT_USER_PRODUCT = "select COUNT from user_products where PRODUCT_ID=%s and USER_ID=%s and EXPIRY_DATE='%s'";
 	public static final String INSERT_PRODUCT ="insert into product(PRODUCT_NAME, MANUFACTURER, CATEGORY, INGREDIENTS,SERVING_SIZE) values('%s','%s','%s','%s','%s')";
 	public static final String INSERT_USER_PRODUCTS = "insert into user_products(PRODUCT_ID, USER_ID,COUNT,EXPIRY_DATE) values(%s,%s,%s,'%s')";
-	public static final String UPDATE_USER_PRODUCTS = "update user_products set COUNT=%s where USER_ID = %s and PRODUCT_ID=%s";
-	
+	public static final String UPDATE_USER_PRODUCTS = "update user_products set COUNT=%s where USER_ID = %s and PRODUCT_ID=%s and EXPIRY_DATE='%s'";
+	public static final String MARK_USER_STATUS = "update user set ACTIVE =%s where EMAIL_ID='%s'";
+	public static final String FETCH_EXPIRED_FOOD = "select count(*) COUNT from user_products inner join user on user_products.USER_ID = user.ID where user.EMAIL_ID='%s' and EXPIRY_DATE - CURDATE() <=3 ";
+	public static final String FETCH_PRODUCT = "select COUNT from user_products inner join user on user.ID = user_products.USER_ID inner join product on product.ID = user_products.PRODUCT_ID where user.EMAIL_ID='%s' and product.PRODUCT_NAME='%s' and user_products.EXPIRY_DATE='%s'";
+	public static final String DELETE_USER_PRODUCT = "delete u_product from user_products u_product inner join user on user.ID = u_product.USER_ID inner join product on product.ID = u_product.PRODUCT_ID where user.EMAIL_ID='%s' and product.PRODUCT_NAME='%s' and u_product.EXPIRY_DATE='%s'";
+	public static final String UPDATE_PRODUCT_COUNT = "update user_products inner join user on user.ID = user_products.USER_ID inner join product on product.ID = user_products.PRODUCT_ID set COUNT =  %s where user.EMAIL_ID='%s' and product.PRODUCT_NAME='%s' and user_products.EXPIRY_DATE='%s'";
+
 	public static void createDBConnection() throws Exception {
 		Class.forName("com.mysql.cj.jdbc.Driver");
 		con = DriverManager.getConnection(
